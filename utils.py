@@ -61,7 +61,7 @@ def clean_text(text):
     return text
 
 
-def convert_to_dataset(data, kor, eng):
+def convert_to_dataset(data, eng):
     """
     Pre-process input DataFrame and convert pandas DataFrame to torchtext Dataset.
     Args:
@@ -73,15 +73,15 @@ def convert_to_dataset(data, kor, eng):
         (Dataset) torchtext Dataset containing 'kor' and 'eng' Fields
     """
     # drop missing values not containing str value from DataFrame
-    missing_rows = [idx for idx, row in data.iterrows() if type(row.korean) != str or type(row.english) != str]
+    missing_rows = [idx for idx, row in data.iterrows() if type(row.english) != str]
     data = data.drop(missing_rows)
 
     # convert each row of DataFrame to torchtext 'Example' containing 'kor' and 'eng' Fields
     list_of_examples = [Example.fromlist(row.apply(lambda x: clean_text(x)).tolist(),
-                                         fields=[('kor', kor), ('eng', eng)]) for _, row in data.iterrows()]
+                                         fields=[('eng', eng), ('eng', eng)]) for _, row in data.iterrows()]
 
     # construct torchtext 'Dataset' using torchtext 'Example' list
-    dataset = Dataset(examples=list_of_examples, fields=[('kor', kor), ('eng', eng)])
+    dataset = Dataset(examples=list_of_examples, fields=[('eng', eng), ('eng', eng)])
 
     return dataset
 
@@ -99,10 +99,6 @@ def make_iter(batch_size, mode, train_data=None, valid_data=None, test_data=None
     Returns:
         (BucketIterator) train, valid, test iterator
     """
-    # load text and label field made by build_pickles.py
-    file_kor = open('pickles/kor.pickle', 'rb')
-    kor = pickle.load(file_kor)
-
     file_eng = open('pickles/eng.pickle', 'rb')
     eng = pickle.load(file_eng)
 
@@ -110,8 +106,8 @@ def make_iter(batch_size, mode, train_data=None, valid_data=None, test_data=None
 
     # convert pandas DataFrame to torchtext dataset
     if mode == 'train':
-        train_data = convert_to_dataset(train_data, kor, eng)
-        valid_data = convert_to_dataset(valid_data, kor, eng)
+        train_data = convert_to_dataset(train_data, eng)
+        valid_data = convert_to_dataset(valid_data, eng)
 
         # make iterator using train and validation dataset
         print(f'Make Iterators for training . . .')
@@ -119,7 +115,7 @@ def make_iter(batch_size, mode, train_data=None, valid_data=None, test_data=None
             (train_data, valid_data),
             # the BucketIterator needs to be told what function it should use to group the data.
             # In our case, we sort dataset using text of example
-            sort_key=lambda sent: len(sent.kor),
+            sort_key=lambda sent: len(sent.eng),
             # all of the tensors will be sorted by their length by below option
             sort_within_batch=True,
             batch_size=batch_size,
@@ -128,7 +124,7 @@ def make_iter(batch_size, mode, train_data=None, valid_data=None, test_data=None
         return train_iter, valid_iter
 
     else:
-        test_data = convert_to_dataset(test_data, kor, eng)
+        test_data = convert_to_dataset(test_data, eng)
 
         # defines dummy list will be passed to the BucketIterator
         dummy = list()
@@ -217,9 +213,6 @@ class Params:
 
     def load_vocab(self):
         # load kor and eng vocabs to add vocab size configuration
-        pickle_kor = open('pickles/kor.pickle', 'rb')
-        kor = pickle.load(pickle_kor)
-
         pickle_eng = open('pickles/eng.pickle', 'rb')
         eng = pickle.load(pickle_eng)
 
@@ -227,7 +220,7 @@ class Params:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # add <sos> and <eos> tokens' indices used to predict the target sentence
-        params = {'input_dim': len(kor.vocab), 'output_dim': len(eng.vocab),
+        params = {'input_dim': len(eng.vocab), 'output_dim': len(eng.vocab),
                   'sos_idx': eng.vocab.stoi['<sos>'], 'eos_idx': eng.vocab.stoi['<eos>'],
                   'pad_idx': eng.vocab.stoi['<pad>'], 'device': device}
 
