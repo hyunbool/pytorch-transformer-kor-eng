@@ -53,8 +53,8 @@ class Trainer:
             for batch in self.train_iter:
                 # For each batch, first zero the gradients
                 self.optimizer.zero_grad()
-                source = batch.eng
-                target = batch.eng
+                source = batch.input
+                target = batch.target
 
                 # target sentence consists of <sos> and following tokens (except the <eos> token)
                 output = self.model(source, target[:, :-1])[0]
@@ -94,8 +94,8 @@ class Trainer:
 
         with torch.no_grad():
             for batch in self.valid_iter:
-                source = batch.eng
-                target = batch.eng
+                source = batch.input
+                target = batch.target
 
                 output = self.model(source, target[:, :-1])[0]
 

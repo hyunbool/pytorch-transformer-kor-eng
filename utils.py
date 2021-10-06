@@ -28,10 +28,10 @@ def load_dataset(mode):
     data_dir = Path().cwd() / 'data'
 
     if mode == 'train':
-        train_file = os.path.join(data_dir, 'train.csv')
+        train_file = os.path.join(data_dir, 'train_long.csv')
         train_data = pd.read_csv(train_file, encoding='utf-8')
 
-        valid_file = os.path.join(data_dir, 'valid.csv')
+        valid_file = os.path.join(data_dir, 'val_long.csv')
         valid_data = pd.read_csv(valid_file, encoding='utf-8')
 
         print(f'Number of training examples: {len(train_data)}')
@@ -40,7 +40,7 @@ def load_dataset(mode):
         return train_data, valid_data
 
     else:
-        test_file = os.path.join(data_dir, 'test.csv')
+        test_file = os.path.join(data_dir, 'test_long.csv')
         test_data = pd.read_csv(test_file, encoding='utf-8')
 
         print(f'Number of testing examples: {len(test_data)}')
@@ -57,7 +57,7 @@ def clean_text(text):
     Returns:
         normalized sentence
     """
-    text = re.sub('[-=+,#/\?:^$.@*\"※~&%ㆍ!』\\‘|\(\)\[\]\<\>`…》]', '', text)
+    text = re.sub('[-=+,#\?:^$.@*\"※~&%ㆍ!』\\‘|\(\)\[\]`…》]', '', text)
     return text
 
 
@@ -73,15 +73,15 @@ def convert_to_dataset(data, eng):
         (Dataset) torchtext Dataset containing 'kor' and 'eng' Fields
     """
     # drop missing values not containing str value from DataFrame
-    missing_rows = [idx for idx, row in data.iterrows() if type(row.english) != str]
+    missing_rows = [idx for idx, row in data.iterrows() if type(row.input) != str]
     data = data.drop(missing_rows)
 
     # convert each row of DataFrame to torchtext 'Example' containing 'kor' and 'eng' Fields
     list_of_examples = [Example.fromlist(row.apply(lambda x: clean_text(x)).tolist(),
-                                         fields=[('eng', eng), ('eng', eng)]) for _, row in data.iterrows()]
+                                         fields=[('input', eng), ('target', eng)]) for _, row in data.iterrows()]
 
     # construct torchtext 'Dataset' using torchtext 'Example' list
-    dataset = Dataset(examples=list_of_examples, fields=[('eng', eng), ('eng', eng)])
+    dataset = Dataset(examples=list_of_examples, fields=[('input', eng), ('target', eng)])
 
     return dataset
 
@@ -102,6 +102,7 @@ def make_iter(batch_size, mode, train_data=None, valid_data=None, test_data=None
     file_eng = open('pickles/eng.pickle', 'rb')
     eng = pickle.load(file_eng)
 
+    print("load_pickle")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # convert pandas DataFrame to torchtext dataset
@@ -113,9 +114,9 @@ def make_iter(batch_size, mode, train_data=None, valid_data=None, test_data=None
         print(f'Make Iterators for training . . .')
         train_iter, valid_iter = ttd.BucketIterator.splits(
             (train_data, valid_data),
-            # the BucketIterator needs to be told what function it should use to group the data.
+            # the BucketIterator needs to be told what functfion it should use to group the data.
             # In our case, we sort dataset using text of example
-            sort_key=lambda sent: len(sent.eng),
+            sort_key=lambda sent: len(sent.input),
             # all of the tensors will be sorted by their length by below option
             sort_within_batch=True,
             batch_size=batch_size,

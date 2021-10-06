@@ -15,6 +15,8 @@ def build_vocab(config):
     Args:
         config: configuration containing various options
     """
+    ###nlp = spacy.load("en_core_web_sm")
+
     eng = ttd.Field(tokenize='spacy',
                     init_token='<sos>',
                     eos_token='<eos>',
@@ -22,7 +24,7 @@ def build_vocab(config):
                     batch_first=True)
 
     data_dir = Path().cwd() / 'data'
-    train_file = os.path.join(data_dir, 'train.csv')
+    train_file = os.path.join(data_dir, 'train_long.csv')
     train_data = pd.read_csv(train_file, encoding='utf-8')
     train_data = convert_to_dataset(train_data, eng)
 
@@ -41,7 +43,7 @@ def build_vocab(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Pickle Builder')
 
-    parser.add_argument('--eng_vocab', type=int, default=30000)
+    parser.add_argument('--eng_vocab', type=int, default=350000)
 
     config = parser.parse_args()
 

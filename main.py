@@ -9,9 +9,11 @@ def main(config):
 
     if config.mode == 'train':
         train_data, valid_data = load_dataset(config.mode)
+        print("load")
         train_iter, valid_iter = make_iter(params.batch_size, config.mode,
                                            train_data=train_data, valid_data=valid_data)
 
+        print("make_iter")
         trainer = Trainer(params, config.mode, train_iter=train_iter, valid_iter=valid_iter)
         trainer.train()
 
