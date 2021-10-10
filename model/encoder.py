@@ -45,6 +45,7 @@ class Encoder(nn.Module):
         source_mask = create_source_mask(source)      # [batch size, source length, source length]
         source_pos = create_position_vector(source)   # [batch size, source length]
 
+
         source = self.token_embedding(source) * self.embedding_scale
         source = self.dropout(source + self.pos_embedding(source_pos))
         # source = [batch size, source length, hidden dim]
