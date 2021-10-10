@@ -1,21 +1,24 @@
 import csv
 import argparse
 from trainer import Trainer
-from utils import load_dataset, make_iter, Params
-
+from util import load_dataset, make_iter, Params
+import torch
+import json
+import numpy as np
+import utils
 
 def main(config):
     params = Params('config/params.json')
 
     if config.mode == 'train':
-        train_data, valid_data = load_dataset(config.mode)
+        vocab, train_data, valid_data = load_dataset(config.mode)
         print("load")
         train_iter, valid_iter = make_iter(params.batch_size, config.mode,
                                            train_data=train_data, valid_data=valid_data)
 
         print("make_iter")
         trainer = Trainer(params, config.mode, train_iter=train_iter, valid_iter=valid_iter)
-        trainer.train()
+        trainer.train(vocab)
 
     else:
         test_data = load_dataset(config.mode)

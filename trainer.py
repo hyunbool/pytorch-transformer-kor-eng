@@ -5,7 +5,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from utils import epoch_time
+from utils import *
+from util import epoch_time
 from model.optim import ScheduledAdam
 from model.transformer import Transformer
 
@@ -40,7 +41,8 @@ class Trainer:
         self.criterion = nn.CrossEntropyLoss(ignore_index=self.params.pad_idx)
         self.criterion.to(self.params.device)
 
-    def train(self):
+    def train(self, vocab):
+
         print(self.model)
         print(f'The model has {self.model.count_params():,} trainable parameters')
         best_valid_loss = float('inf')
@@ -53,9 +55,11 @@ class Trainer:
             for batch in self.train_iter:
                 # For each batch, first zero the gradients
                 self.optimizer.zero_grad()
-                source = batch.input
-                target = batch.target
 
+                source, _, _, _ = vocab.make_features(batch)
+
+                target = source
+                #print(target)
                 # target sentence consists of <sos> and following tokens (except the <eos> token)
                 output = self.model(source, target[:, :-1])[0]
 
