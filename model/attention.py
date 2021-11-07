@@ -5,6 +5,7 @@ import numpy as np
 
 from model.ops import init_weight
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, params):
@@ -47,7 +48,7 @@ class SelfAttention(nn.Module):
         init_weight(self.v_w)
 
         self.dropout = nn.Dropout(params.dropout)
-        self.scale_factor = torch.sqrt(torch.FloatTensor([self.attention_dim])).to(params.device)
+        self.scale_factor = torch.sqrt(torch.FloatTensor([self.attention_dim])).to(device)
 
     def forward(self, query, key, value, mask=None):
         # query, key, value = [batch size, sentence length, hidden dim]
@@ -59,7 +60,8 @@ class SelfAttention(nn.Module):
         # q, k, v = [batch size, sentence length, attention dim]
 
         self_attention = torch.bmm(q, k.permute(0, 2, 1))
-        self_attention = self_attention / self.scale_factor
+        self_attention = self_attention.to(device)
+        self_attention = (self_attention / self.scale_factor).to(device)
         # self_attention = [batch size, sentence length, sentence length]
 
         if mask is not None:

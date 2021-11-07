@@ -17,6 +17,30 @@ from torch.utils.data import DataLoader
 import numpy as np
 import utils
 
+def convert_to_dataset(data, eng):
+    """
+    Pre-process input DataFrame and convert pandas DataFrame to torchtext Dataset.
+    Args:
+        data: (DataFrame) pandas DataFrame to be converted into torchtext Dataset
+        kor: torchtext Field containing Korean sentence
+        eng: torchtext Field containing English sentence
+
+    Returns:
+        (Dataset) torchtext Dataset containing 'kor' and 'eng' Fields
+    """
+    # drop missing values not containing str value from DataFrame
+    missing_rows = [idx for idx, row in data.iterrows() if type(row.input) != str]
+    data = data.drop(missing_rows)
+
+    # convert each row of DataFrame to torchtext 'Example' containing 'kor' and 'eng' Fields
+    list_of_examples = [Example.fromlist(row.apply(lambda x: clean_text(x)).tolist(),
+                                         fields=[('input', eng), ('target', eng)]) for _, row in data.iterrows()]
+
+    # construct torchtext 'Dataset' using torchtext 'Example' list
+    dataset = Dataset(examples=list_of_examples, fields=[('input', eng), ('target', eng)])
+
+    return dataset
+
 def load_dataset(mode):
     """
     Load train, valid and test dataset as a pandas DataFrame
@@ -29,6 +53,7 @@ def load_dataset(mode):
     if mode == 'train':
         with open('data/train_ex.json', encoding='utf-8') as f:
             examples = [json.loads(line) for line in f]
+
         train_dataset = utils.Dataset(examples)
 
         with open('data/val_ex.json', encoding='utf-8') as f:
@@ -64,42 +89,18 @@ def clean_text(text):
     return text
 
 
-def convert_to_dataset(data, eng):
-    """
-    Pre-process input DataFrame and convert pandas DataFrame to torchtext Dataset.
-    Args:
-        data: (DataFrame) pandas DataFrame to be converted into torchtext Dataset
-        kor: torchtext Field containing Korean sentence
-        eng: torchtext Field containing English sentence
-
-    Returns:
-        (Dataset) torchtext Dataset containing 'kor' and 'eng' Fields
-    """
-    # drop missing values not containing str value from DataFrame
-    missing_rows = [idx for idx, row in data.iterrows() if type(row.input) != str]
-    data = data.drop(missing_rows)
-
-    # convert each row of DataFrame to torchtext 'Example' containing 'kor' and 'eng' Fields
-    list_of_examples = [Example.fromlist(row.apply(lambda x: clean_text(x)).tolist(),
-                                         fields=[('input', eng), ('target', eng)]) for _, row in data.iterrows()]
-
-    # construct torchtext 'Dataset' using torchtext 'Example' list
-    dataset = Dataset(examples=list_of_examples, fields=[('input', eng), ('target', eng)])
-
-    return dataset
-
 
 def make_iter(batch_size, mode, train_data=None, valid_data=None, test_data=None):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     # convert pandas DataFrame to torchtext dataset
     if mode == 'train':
+        #print(train_data[0])
         train_iter = DataLoader(dataset=train_data,
                                 batch_size=batch_size,
                                 shuffle=True)
         val_iter = DataLoader(dataset=valid_data,
                               batch_size=batch_size,
                               shuffle=False)
+
 
         return train_iter, val_iter
 
@@ -200,7 +201,7 @@ class Params:
         vocab = utils.Vocab(embed, word2id)
 
         # add device information to the the params
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         # add <sos> and <eos> tokens' indices used to predict the target sentence
         params = {'input_dim': embed.size(0), 'output_dim': embed.size(0),

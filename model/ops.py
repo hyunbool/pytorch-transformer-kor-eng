@@ -3,13 +3,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-pickle_eng = open('pickles/eng.pickle', 'rb')
-eng = pickle.load(pickle_eng)
-pad_idx = eng.vocab.stoi['<pad>']
+pad_idx = 0
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def create_subsequent_mask(target):
+def create_subsequent_mask(target, dev):
     """
     if target length is 5 and diagonal is 1, this function returns
         [[0, 1, 1, 1, 1],
@@ -54,7 +52,7 @@ def create_source_mask(source):
     return source_mask
 
 
-def create_target_mask(source, target):
+def create_target_mask(source, target, dev):
     """
     create masking tensor for decoder's self attention and decoder's attention on the output of encoder
     if sentence is [2, 193, 9, 27, 10003, 1, 1, 1, 3] and 2 denotes <sos>, 3 denotes <eos> and 1 denotes <pad>
@@ -65,7 +63,7 @@ def create_target_mask(source, target):
     """
     target_length = target.shape[1]
 
-    subsequent_mask = create_subsequent_mask(target)
+    subsequent_mask = create_subsequent_mask(target, device)
     # subsequent_mask = [batch size, target length, target length]
 
     source_mask = (source == pad_idx)
@@ -82,7 +80,7 @@ def create_target_mask(source, target):
     return target_mask, dec_enc_mask
 
 
-def create_position_vector(sentence):
+def create_position_vector(sentence, params):
     """
     create position vector which contains positional information
     0th position is used for pad index
@@ -98,7 +96,7 @@ def create_position_vector(sentence):
     return pos_vec
 
 
-def create_positional_encoding(max_len, hidden_dim):
+def create_positional_encoding(max_len, hidden_dim, dev):
     # PE(pos, 2i)     = sin(pos/10000 ** (2*i / hidden_dim))
     # PE(pos, 2i + 1) = cos(pos/10000 ** (2*i / hidden_dim))
     sinusoid_table = np.array([pos / np.power(10000, 2 * i / hidden_dim)
@@ -112,9 +110,9 @@ def create_positional_encoding(max_len, hidden_dim):
     sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2])  # calculate pe for odd dimension
 
     # convert numpy based sinusoid table to torch.tensor and repeat it 'batch size' times
-    sinusoid_table = torch.FloatTensor(sinusoid_table).to(device)
+    sinusoid_table = torch.FloatTensor(sinusoid_table)
     sinusoid_table[0] = 0.
-
+    sinusoid_table = sinusoid_table.to(device)
     return sinusoid_table
 
 

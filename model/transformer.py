@@ -2,11 +2,13 @@ import torch.nn as nn
 
 from model.encoder import Encoder
 from model.decoder import Decoder
+import torch
 
 
 class Transformer(nn.Module):
     def __init__(self, params):
         super(Transformer, self).__init__()
+        self.params = params
         self.encoder = Encoder(params)
         self.decoder = Decoder(params)
 
@@ -14,6 +16,7 @@ class Transformer(nn.Module):
         # source = [batch size, source length]
         # target = [batch size, target length]
         encoder_output = self.encoder(source)                            # [batch size, source length, hidden dim]
+
         output, attn_map = self.decoder(target, source, encoder_output)  # [batch size, target length, output dim]
         return output, attn_map
 

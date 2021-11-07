@@ -39,11 +39,13 @@ class DecoderLayer(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, params):
         super(Decoder, self).__init__()
+        self.params = params
+
         self.token_embedding = nn.Embedding(params.output_dim, params.hidden_dim, padding_idx=params.pad_idx)
         nn.init.normal_(self.token_embedding.weight, mean=0, std=params.hidden_dim**-0.5)
         self.embedding_scale = params.hidden_dim ** 0.5
         self.pos_embedding = nn.Embedding.from_pretrained(
-            create_positional_encoding(params.max_len+1, params.hidden_dim), freeze=True)
+            create_positional_encoding(params.max_len+1, params.hidden_dim, params.device), freeze=True)
 
         self.decoder_layers = nn.ModuleList([DecoderLayer(params) for _ in range(params.n_layer)])
         self.dropout = nn.Dropout(params.dropout)
@@ -53,9 +55,9 @@ class Decoder(nn.Module):
         # target              = [batch size, target length]
         # source              = [batch size, source length]
         # encoder_output      = [batch size, source length, hidden dim]
-        target_mask, dec_enc_mask = create_target_mask(source, target)
+        target_mask, dec_enc_mask = create_target_mask(source, target, self.params.device)
         # target_mask / dec_enc_mask  = [batch size, target length, target/source length]
-        target_pos = create_position_vector(target)  # [batch size, target length]
+        target_pos = create_position_vector(target, self.params)  # [batch size, target length]
 
         target = self.token_embedding(target) * self.embedding_scale
         target = self.dropout(target + self.pos_embedding(target_pos))

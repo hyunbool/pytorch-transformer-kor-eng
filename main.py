@@ -7,6 +7,11 @@ import json
 import numpy as np
 import utils
 
+import os
+
+os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+
 def main(config):
     params = Params('config/params.json')
 
